@@ -1,0 +1,10 @@
+gradio>=4.0
+openai>=1.30
+ebooklib>=0.18
+beautifulsoup4>=4.12
+lxml>=5.0
+pydub>=0.25
+pyyaml>=6.0
+cn2an>=0.5.22
+tqdm>=4.66
+# IndexTTS2: install separately, e.g. `pip install -e D:/AI/index-tts`

@@ -1,0 +1,35 @@
+# 小说朗读工具 配置
+
+lmstudio:
+  base_url: "http://localhost:1234/v1"
+  api_key: "lm-studio"          # LMStudio 不校验，占位
+  model: "qwen/qwen3.5-9b"      # LMStudio 中加载的模型 ID
+  temperature: 0.2
+  max_chunk_chars: 1500          # 每次送 LLM 的最大字符数
+  request_timeout: 180
+
+indextts:
+  repo_dir: "D:/AI/index-tts"
+  cfg_path: "D:/AI/index-tts/checkpoints/config.yaml"
+  model_dir: "D:/AI/index-tts/checkpoints"
+  use_fp16: true
+  device: null                   # null = 自动选 cuda:0
+  use_cuda_kernel: null
+
+voices:
+  # 角色名 -> 参考音频路径。narrator 必填。
+  narrator: "voices/narrator.wav"
+
+audio:
+  # 段落间停顿（毫秒）
+  pause_after_period: 400
+  pause_after_comma: 200
+  pause_dialogue_switch: 600
+  pause_paragraph: 500
+  output_format: "mp3"           # mp3 | wav
+  bitrate: "128k"
+
+paths:
+  cache_dir: "cache"
+  output_dir: "output"
+  script_dir: "scripts"          # LLM 拆分结果 JSON

@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+
+# Editor / harness
+.claude/
+.idea/
+.vscode/
+
+# 运行产物（按 hash 缓存，重跑会重生成）
+cache/
+output/
+
+# 用户素材：不入库
+novel/
+voices/*.wav
+voices/*.mp3
+*.mp4
+
+# 拆分脚本：含小说原文，避免版权/隐私入库
+scripts/
+
+# 保留示例目录结构
+!voices/.gitkeep
