@@ -23,6 +23,7 @@ voices/*.mp3
 
 # 拆分脚本：含小说原文，避免版权/隐私入库
 scripts/
+books/
 
 # 保留示例目录结构
 !voices/.gitkeep

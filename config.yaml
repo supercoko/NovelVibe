@@ -1,12 +1,32 @@
 # 小说朗读工具 配置
 
-lmstudio:
-  base_url: "http://localhost:1234/v1"
-  api_key: "lm-studio"          # LMStudio 不校验，占位
-  model: "qwen/qwen3.5-9b"      # LMStudio 中加载的模型 ID
-  temperature: 0.2
-  max_chunk_chars: 1500          # 每次送 LLM 的最大字符数
+llm:
+  # 当前激活的 provider，从下面 providers 里挑一个
+  active: lmstudio
+
+  # 跨 provider 通用参数
+  temperature: 0.3
+  max_chunk_chars: 5000           # 每次送 LLM 的最大字符数
   request_timeout: 180
+
+  # OpenAI 兼容 API 列表，可任意增删；api_key 支持 ${ENV_VAR} 展开
+  providers:
+    lmstudio:
+      base_url: "http://localhost:1234/v1"
+      api_key: "lm-studio"        # LMStudio 不校验，占位即可
+      model: "qwen/qwen3.5-9b"
+    openai:
+      base_url: "https://api.openai.com/v1"
+      api_key: "${OPENAI_API_KEY}"
+      model: "gpt-4o-mini"
+    deepseek:
+      base_url: "https://api.deepseek.com/v1"
+      api_key: "${DEEPSEEK_API_KEY}"
+      model: "deepseek-chat"
+    custom:
+      base_url: "${CUSTOM_API_URL}"   # 例如部署在本地的 OpenAI API 兼容服务
+      api_key: "${CUSTOM_API_KEY}"
+      model: "deepseek-v4-flash"
 
 indextts:
   repo_dir: "D:/AI/index-tts"

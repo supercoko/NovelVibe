@@ -39,7 +39,7 @@ def synthesize_chapter(
     total = len(segments)
     for i, seg in enumerate(segments):
         ref = voice.get(seg.speaker)
-        wav_path = tts.synth(seg.text, ref)
+        wav_path = tts.synth(seg.text, ref, getattr(seg, "emotion", "calm"))
         clip = AudioSegment.from_file(str(wav_path))
         pause = _pause_between(prev, seg, audio_cfg)
         if pause > 0:
