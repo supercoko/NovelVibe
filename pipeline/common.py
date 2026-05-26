@@ -10,6 +10,36 @@ import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
 _CFG_PATH = ROOT / "config.yaml"
+_ENV_PATH = ROOT / ".env"
+
+
+def _load_env_file(path: Path = _ENV_PATH) -> None:
+    """简单 .env 加载器：KEY=VALUE 每行，# 注释，不依赖 dotenv 库。
+
+    已存在的 os.environ 值不会被覆盖（允许 shell 临时变量优先）。
+    """
+    if not path.exists():
+        return
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        # 兼容 `export KEY=...`
+        if line.startswith("export "):
+            line = line[len("export "):]
+        key, _, val = line.partition("=")
+        key = key.strip()
+        val = val.strip()
+        # 剥两端引号
+        if len(val) >= 2 and val[0] == val[-1] and val[0] in {'"', "'"}:
+            val = val[1:-1]
+        if key and key not in os.environ:
+            os.environ[key] = val
+
+
+# 模块导入时立即尝试加载 .env（不存在则静默忽略）
+_load_env_file()
+
 
 # 热加载缓存：避免每次调用都解析 YAML
 _CACHE: dict[str, Any] = {"mtime": 0.0, "data": None}

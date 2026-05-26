@@ -39,7 +39,7 @@ def resolve_provider(cfg: dict[str, Any], name: str | None = None) -> dict[str, 
     """根据 cfg + 可选 provider 名称，组装一份完整的连接参数。
 
     兼容旧 schema (顶层 `lmstudio:`)；新 schema 用 `llm.providers.<name>`。
-    api_key 中的 ${ENV_VAR} 自动展开。
+    所有字符串字段中的 ${ENV_VAR} 都会自动展开。
     """
     import os
 
@@ -68,10 +68,13 @@ def resolve_provider(cfg: dict[str, Any], name: str | None = None) -> dict[str, 
     else:
         raise KeyError("config.yaml 缺少 llm 或 lmstudio 配置")
 
-    # 展开环境变量
-    key = str(prov.get("api_key") or "")
-    if "${" in key:
-        prov["api_key"] = os.path.expandvars(key)
+    # 展开所有字符串值里的 ${ENV_VAR}
+    for k, v in list(prov.items()):
+        if isinstance(v, str) and "${" in v:
+            expanded = os.path.expandvars(v)
+            if expanded == v:  # 没展开成功，多半是 env 没设
+                print(f"[provider] 警告：{k}={v!r} 中的环境变量未定义")
+            prov[k] = expanded
     return prov
 
 
