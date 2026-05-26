@@ -93,6 +93,9 @@ def _df_to_segments(df: pd.DataFrame) -> list[Segment]:
         if pd.isna(emo_raw):
             emo_raw = ""
         emotion = str(emo_raw).strip().lower() or "calm"
+        # 旁白强制 calm，与 LLM 输出无关
+        if t == "narration":
+            emotion = "calm"
         segs.append(Segment(type=t, speaker=speaker, text=text, emotion=emotion))
     return segs
 
@@ -651,6 +654,21 @@ def on_save_active_provider(name: str):
     return f"✅ 已保存 active = {name}，下一次拆分立即生效"
 
 
+def on_toggle_emotion(enabled: bool):
+    """情感总开关：写回 config.yaml + 热重载。"""
+    import yaml
+    cfg_path = ROOT / "config.yaml"
+    cfg = yaml.safe_load(cfg_path.read_text(encoding="utf-8"))
+    cfg.setdefault("audio", {})["use_emotion"] = bool(enabled)
+    cfg_path.write_text(yaml.safe_dump(cfg, allow_unicode=True, sort_keys=False),
+                        encoding="utf-8")
+    reload_cfg()
+    state = "开启" if enabled else "关闭"
+    extra = ("（对话按 LLM 标注的情绪渲染；旁白永远 calm）"
+             if enabled else "（所有段一律按 calm 合成，缓存与开启时分开）")
+    return f"✅ 情感{state} {extra}"
+
+
 # ---------------------------------------------------------------------------
 # UI
 # ---------------------------------------------------------------------------
@@ -661,6 +679,11 @@ with gr.Blocks(title="小说朗读工具", theme=gr.themes.Soft()) as demo:
     with gr.Accordion("⚙ 全局配置（config.yaml 自动热加载）", open=False):
         with gr.Row():
             btn_reload_cfg = gr.Button("立即重载 config.yaml")
+            use_emotion_cb = gr.Checkbox(
+                label="启用对话情感（旁白永远 calm）",
+                value=bool((get_cfg().get("audio") or {}).get("use_emotion", True)),
+                info="关闭后所有段按平稳语调合成，节省 LLM token 与 TTS 时间",
+            )
             cfg_msg = gr.Markdown()
         cfg_preview = gr.Code(
             label="当前配置",
@@ -779,6 +802,7 @@ with gr.Blocks(title="小说朗读工具", theme=gr.themes.Soft()) as demo:
 
     # ----- 事件 -----
     btn_reload_cfg.click(on_reload_cfg, outputs=[cfg_msg, cfg_preview])
+    use_emotion_cb.change(on_toggle_emotion, inputs=[use_emotion_cb], outputs=[cfg_msg])
 
     provider_dd.change(on_pick_provider, inputs=[provider_dd], outputs=[provider_msg])
     btn_save_provider.click(on_save_active_provider, inputs=[provider_dd],

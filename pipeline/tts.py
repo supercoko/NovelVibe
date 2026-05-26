@@ -156,6 +156,8 @@ class TTSEngine:
         self.cache_dir = Path(ROOT / cfg["paths"]["cache_dir"])
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self._ref_hash_cache: dict[str, str] = {}
+        # 情感总开关：关时所有段都不传情绪向量
+        self.use_emotion = bool((cfg.get("audio") or {}).get("use_emotion", True))
 
     def _ref_hash(self, ref_audio: str) -> str:
         if ref_audio not in self._ref_hash_cache:
@@ -164,16 +166,20 @@ class TTSEngine:
 
     def synth(self, text: str, ref_audio: str, emotion: str | None = None) -> Path:
         ref_audio = str(Path(ref_audio).resolve())
-        emo_tag = (emotion or "calm").strip().lower()
-        if emo_tag not in EMOTION_VECTORS:
+        # 总开关关 → 强制按 calm 走（也保证缓存 key 稳定）
+        if not self.use_emotion:
             emo_tag = "calm"
+        else:
+            emo_tag = (emotion or "calm").strip().lower()
+            if emo_tag not in EMOTION_VECTORS:
+                emo_tag = "calm"
         # 缓存 key 包含情绪：换情绪自动生成新音频
         key = text_hash(text, self._ref_hash(ref_audio), emo_tag)
         out_path = self.cache_dir / f"{key}.wav"
         if out_path.exists():
             return out_path
         tts = get_tts(self.cfg)
-        emo_vector = emotion_to_vector(emo_tag)
+        emo_vector = emotion_to_vector(emo_tag) if self.use_emotion else None
         kwargs: dict[str, Any] = {
             "spk_audio_prompt": ref_audio,
             "text": text,

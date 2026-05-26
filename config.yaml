@@ -41,6 +41,8 @@ voices:
   narrator: "voices/narrator.wav"
 
 audio:
+  # 是否启用对话情感（仅影响 dialogue；narration 永远 calm）
+  use_emotion: true
   # 段落间停顿（毫秒）
   pause_after_period: 400
   pause_after_comma: 200

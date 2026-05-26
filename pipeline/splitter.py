@@ -227,6 +227,11 @@ def _extract_json(raw: str) -> dict[str, Any]:
 
 
 class Splitter:
+    # 关闭情感时使用的精简 schema（不要求 emotion 字段）
+    _schema_no_emotion = json.loads(json.dumps(SPLIT_SCHEMA))
+    _schema_no_emotion["properties"]["segments"]["items"]["required"] = ["type", "speaker", "text"]
+    _schema_no_emotion["properties"]["segments"]["items"]["properties"].pop("emotion", None)
+
     def __init__(self, cfg: dict[str, Any], provider_name: str | None = None):
         provider = resolve_provider(cfg, provider_name)
         self.client = OpenAI(
@@ -239,6 +244,8 @@ class Splitter:
         self.max_chunk_chars = provider["max_chunk_chars"]
         self.provider_name = provider["name"]
         self.prompt_template = PROMPT_PATH.read_text(encoding="utf-8")
+        # 情感开关：默认开。可由 cfg["audio"]["use_emotion"] 或构造参数覆盖
+        self.use_emotion = bool((cfg.get("audio") or {}).get("use_emotion", True))
 
     def _call_llm(self, chunk: str, known_chars: dict[str, Any]) -> dict[str, Any]:
         prompt = (
@@ -246,9 +253,16 @@ class Splitter:
             .replace("{known_characters_json}", json.dumps(known_chars, ensure_ascii=False))
             .replace("{chunk}", chunk)
         )
+        # 情感关闭时，在 prompt 末尾追加一条强约束，并裁剪 schema 不要求 emotion
+        if not self.use_emotion:
+            prompt += (
+                "\n\n====================\n额外约束\n====================\n"
+                "本次切分**不需要**输出 emotion 字段，所有 segments 的 emotion 统一填 \"calm\"。\n"
+            )
         response_formats = [
             {"type": "json_schema",
-             "json_schema": {"name": "novel_split", "schema": SPLIT_SCHEMA}},
+             "json_schema": {"name": "novel_split",
+                             "schema": self._schema_no_emotion if not self.use_emotion else SPLIT_SCHEMA}},
             {"type": "text"},
         ]
         last_err: Exception | None = None
@@ -304,6 +318,9 @@ class Splitter:
             text_v = (seg.get("text") or "").strip()
             emotion = (seg.get("emotion") or "calm").strip().lower()
             if emotion not in EMOTIONS:
+                emotion = "calm"
+            # 强制：旁白永远平稳，无视 LLM 给的情绪
+            if t == "narration":
                 emotion = "calm"
             if text_v:
                 out.append(Segment(type=t, speaker=speaker, text=text_v, emotion=emotion))
